@@ -1,3 +1,6 @@
+import {
+  Toast
+} from "mint-ui"
 (function (window) {
   window.JKEventHandler = {
     browser: function () {
@@ -23,6 +26,51 @@
         QQBrowse: u.indexOf('qq') > -1, // QQ浏览器
       }
     },
+    /**
+     * 安卓IOS公用一个，通过JKEventHandler方法传递方法名和参数
+     * @param {*} methodsName 方法名称
+     * @param {*} params 方法传递参数
+     * @param {*} callBack 回调函数，接受app端返回数据
+     */
+    appCallFunction: function (methodsName, params, callBack) {
+      var methodsName = (methodsName.replace(/function\s?/mi, "").split("("))[0];
+      var callBackName = methodsName;
+      let methods = {};
+      if (!params) {
+        params = {};
+      }
+      if (!callBack) {
+        methods = {
+          methodsName: methodsName,
+          params: params
+        }
+        methods = JSON.stringify(methods);
+        if (this.browser().ios) {
+          window.webkit.messageHandlers.JKEventHandler.postMessage(methods);
+        } else if (this.browser().android) {
+          android.JKEventHandler(methods);
+        }
+      } else {
+        methods = {
+          methodsName: methodsName,
+          params: params,
+          callBackName: callBackName
+        }
+        if (!window[callBackName]) {
+          window[callBackName] = function (data) {
+            callBack(data);
+          }
+        }
+        methods = JSON.stringify(methods);
+        if (this.browser().ios) {
+          window.webkit.messageHandlers.JKEventHandler.postMessage(methods);
+        } else if (this.browser().android) {
+          android.JKEventHandler(methods);
+        }
+      }
+
+    },
+
     //时间戳来自客户端，精确到毫秒，但仍旧有可能在在多线程下有并发，
     //尤其hash化后，毫秒数前面的几位都不变化，导致不同日期hash化的值有可能存在相同，
     //因此使用下面的随机数函数，在时间戳上加随机数，保证hash化的结果差异会比较大
@@ -109,6 +157,7 @@
       Event._listeners = {};
     }
   }
+
   var Event = {
     _listeners: {},
     addEvent: function (type, fn) {
